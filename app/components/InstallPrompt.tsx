@@ -24,7 +24,7 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-const APPEAR_AFTER_MS = 5000;
+const APPEAR_AFTER_MS = 2500;
 
 export function InstallPrompt() {
   const [mode, setMode] = useState<InstallMode>("none");
@@ -43,12 +43,19 @@ export function InstallPrompt() {
   }, []);
 
   useEffect(() => {
+    // `?install` re-opens the prompt regardless of a past dismissal. There is
+    // no way to un-dismiss otherwise, which makes the feature impossible to
+    // demo or support once you have tapped "Got it" even once.
+    const forced = new URLSearchParams(window.location.search).has("install");
+
     const standalone =
       window.matchMedia?.("(display-mode: standalone)").matches === true ||
       // iOS reports installed apps through a non-standard flag.
       (navigator as { standalone?: boolean }).standalone === true;
 
-    const dismissedAt = readDismissedAt(window.localStorage);
+    // No argument: the storage access happens inside the guard, because
+    // touching `localStorage` at all throws in Safari with storage blocked.
+    const dismissedAt = forced ? null : readDismissedAt();
 
     // iPadOS 13+ claims to be a Mac, so a UA check alone misses iPads. A Mac
     // with a touchscreen does not exist, which makes this a reliable tell.
@@ -61,7 +68,7 @@ export function InstallPrompt() {
 
     const evaluate = (hasNativePrompt: boolean) =>
       installMode({
-        standalone,
+        standalone: forced ? false : standalone,
         hasNativePrompt,
         isIosSafari,
         dismissedAt,
@@ -114,7 +121,13 @@ export function InstallPrompt() {
   // Let the page breathe before asking for anything.
   useEffect(() => {
     if (mode === "none") return;
-    const id = window.setTimeout(() => setVisible(true), APPEAR_AFTER_MS);
+    const id = window.setTimeout(
+      () => setVisible(true),
+      // No waiting around when it was asked for explicitly.
+      new URLSearchParams(window.location.search).has("install")
+        ? 0
+        : APPEAR_AFTER_MS,
+    );
     return () => window.clearTimeout(id);
   }, [mode]);
 

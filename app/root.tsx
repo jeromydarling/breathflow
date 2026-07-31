@@ -13,7 +13,8 @@ import "./app.css";
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
-  { rel: "apple-touch-icon", href: "/icon-192.png" },
+  // iOS wants 180×180 specifically, and we generate exactly that.
+  { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
   { rel: "manifest", href: "/manifest.webmanifest" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
@@ -42,6 +43,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
           content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
         <meta name="theme-color" content="#171a18" />
+        {/*
+          iOS reads the manifest on 16.4+, but these are still what decide
+          whether a home-screen launch opens standalone or inside Safari
+          chrome on everything older — and they set the name under the icon.
+        */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent"
+        />
+        <meta name="apple-mobile-web-app-title" content="BreathFLOW" />
         <Meta />
         <Links />
         {/*

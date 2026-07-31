@@ -77,9 +77,21 @@ export function detectIosSafari(userAgent: string): boolean {
   return !/CriOS|FxiOS|EdgiOS|OPiOS|OPT\//.test(ua);
 }
 
-export function readDismissedAt(storage: Pick<Storage, "getItem">): number | null {
+/**
+ * Reading `localStorage` is itself a throwing operation in Safari when the
+ * user has blocked storage — the exception comes from *touching the property*,
+ * not from `getItem`. Passing `window.localStorage` in as an argument
+ * therefore threw before the callee's try/catch could help, which aborted the
+ * whole install effect and made the prompt silently never appear.
+ *
+ * So the access happens in here, inside the guard.
+ */
+export function readDismissedAt(
+  storage?: Pick<Storage, "getItem"> | null,
+): number | null {
   try {
-    const raw = storage.getItem(DISMISS_STORAGE_KEY);
+    const store = storage ?? globalThis.localStorage;
+    const raw = store?.getItem(DISMISS_STORAGE_KEY);
     if (!raw) return null;
     const value = Number(raw);
     return Number.isFinite(value) ? value : null;
