@@ -1,0 +1,75 @@
+/**
+ * BreathFLOW — Cloudflare Worker configuration.
+ *
+ * Non-secret vars live here. Secrets are Worker secrets, set with
+ * `wrangler secret put NAME`. Never commit a key to this file.
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "breathflow",
+  "main": "./workers/app.ts",
+  "compatibility_date": "2026-07-31",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./build/client",
+    "not_found_handling": "none"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "upload_source_maps": true,
+  "placement": { "mode": "smart" },
+
+  "vars": {
+    "APP_NAME": "BreathFLOW",
+    "APP_URL": "https://breathflow.app",
+    "SUPPORT_EMAIL": "hello@breathflow.app",
+    "FROM_EMAIL": "BreathFLOW <hello@breathflow.app>",
+    "BOOKING_URL": "",
+    "INSTAGRAM_URL": "",
+    "DEMO_EMAIL": "demo@breathflow.app"
+  },
+
+  /** D1 — relational data. */
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "breathflow",
+      "database_id": "708a3005-a174-4ad8-a7bb-67632af9e46a",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  /** KV — rate-limit counters, ephemeral tokens, cached config. */
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "489f6a69c9d248c399c2db353f13ffec"
+    }
+  ],
+
+  /**
+   * R2 — session audio, guide artwork, share-card backgrounds, user uploads.
+   *   npx wrangler r2 bucket create breathflow-media
+   */
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "breathflow-media"
+    }
+  ],
+
+  /** On-the-fly image transforms for responsive artwork. */
+  "images": {
+    "binding": "IMAGES"
+  },
+
+  /**
+   * Cron triggers.
+   *  - hourly: send daily practice reminders to users whose chosen hour it is.
+   *  - 04:00 UTC daily: reset the demo account and sweep expired sessions.
+   */
+  "triggers": {
+    "crons": ["0 * * * *", "0 4 * * *"]
+  }
+}

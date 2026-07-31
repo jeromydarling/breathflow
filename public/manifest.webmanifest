@@ -1,0 +1,46 @@
+{
+  "name": "BreathFLOW",
+  "short_name": "BreathFLOW",
+  "description": "A daily breath practice rooted in pranayama. Tap into your life force. Return to flow.",
+  "start_url": "/home",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#171a18",
+  "theme_color": "#171a18",
+  "categories": ["health", "lifestyle", "wellness"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Three-Minute Return",
+      "short_name": "3 minutes",
+      "description": "A short practice that still keeps your streak",
+      "url": "/play/three-minute-return"
+    },
+    {
+      "name": "I need relief now",
+      "short_name": "Relief",
+      "description": "A gentle regulating practice for right now",
+      "url": "/play/anxiety-relief"
+    }
+  ]
+}
