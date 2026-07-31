@@ -13,6 +13,8 @@ export default [
     route("pricing", "routes/marketing/pricing.tsx"),
     route("about", "routes/marketing/about.tsx"),
     route("safety", "routes/marketing/safety.tsx"),
+    // Diagnostics for the add-to-home-screen prompt. Noindex, never cached.
+    route("install-check", "routes/marketing/install-check.tsx"),
     route("privacy", "routes/marketing/privacy.tsx"),
     route("terms", "routes/marketing/terms.tsx"),
     route("guides", "routes/marketing/guides-index.tsx"),

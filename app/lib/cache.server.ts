@@ -18,9 +18,21 @@
 
 import { hasSessionCookie } from "./auth.server";
 
+/**
+ * `stale-while-revalidate` is deliberately short.
+ *
+ * It was 86400, which meant a repeat visitor could be handed HTML up to a day
+ * old — served instantly from the edge while revalidation happened behind
+ * them. That makes a deploy effectively invisible to exactly the people most
+ * likely to be checking it, and cost real time chasing a shipped fix that
+ * looked like it had not shipped.
+ *
+ * Sixty seconds keeps the thundering-herd protection that SWR is actually for
+ * and caps total staleness at roughly s-maxage + 1 minute.
+ */
 export function cacheAnonymousGet(seconds = 300): Record<string, string> {
   return {
-    "Cache-Control": `public, max-age=0, s-maxage=${seconds}, stale-while-revalidate=86400`,
+    "Cache-Control": `public, max-age=0, s-maxage=${seconds}, stale-while-revalidate=60`,
     Vary: "Cookie, Accept-Encoding",
   };
 }
