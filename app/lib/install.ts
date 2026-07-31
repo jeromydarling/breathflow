@@ -21,16 +21,32 @@ export type InstallMode =
   | "native"
   /** iOS Safari: no programmatic prompt exists, so we explain the two taps. */
   | "ios-instructions"
+  /**
+   * On iOS but in a browser that cannot install — an in-app webview opened
+   * from WhatsApp or Instagram, or Chrome/Firefox. Adding to the home screen
+   * is impossible here, but opening the page in Safari is not, so say that
+   * rather than showing nothing.
+   */
+  | "ios-open-in-safari"
   /** Nothing to offer. */
   | "none";
+
+/**
+ * Which iOS browser this is, as far as installing is concerned.
+ *
+ * "in-app" is the case that matters most in practice: links get shared through
+ * WhatsApp, Instagram and Slack, and every one of them opens in an embedded
+ * webview where Add to Home Screen simply does not exist.
+ */
+export type IosBrowser = "safari" | "in-app" | "other-ios-browser" | "not-ios";
 
 export type InstallContext = {
   /** Already running as an installed app. */
   standalone: boolean;
   /** The browser fired `beforeinstallprompt` and we captured it. */
   hasNativePrompt: boolean;
-  /** iOS Safari, where "Add to Home Screen" is a manual Share-sheet action. */
-  isIosSafari: boolean;
+  /** What kind of iOS browser this is, if any. */
+  iosBrowser: IosBrowser;
   /** Epoch ms of the last dismissal, or null. */
   dismissedAt: number | null;
   now: number;
@@ -43,7 +59,13 @@ export function installMode(context: InstallContext): InstallMode {
   if (isDismissalActive(context.dismissedAt, context.now)) return "none";
 
   if (context.hasNativePrompt) return "native";
-  if (context.isIosSafari) return "ios-instructions";
+  if (context.iosBrowser === "safari") return "ios-instructions";
+  if (
+    context.iosBrowser === "in-app" ||
+    context.iosBrowser === "other-ios-browser"
+  ) {
+    return "ios-open-in-safari";
+  }
 
   return "none";
 }
@@ -60,32 +82,47 @@ export function isDismissalActive(
 }
 
 /**
- * iOS Safari only. Chrome and Firefox on iOS cannot add to the home screen at
- * all, so telling their users to look for a Share button that will not help
- * them would just be wrong.
+ * Classify an iOS browser by whether it can install at all.
+ *
+ * The previous version answered a narrower question — "is this iOS Safari?" —
+ * and returned a bare false for everything else, which meant a link opened
+ * from WhatsApp got silence. Since shared links are how most people arrive,
+ * that was the common case, not the edge case.
  */
-export function detectIosSafari(userAgent: string): boolean {
+export function detectIosBrowser(
+  userAgent: string,
+  maxTouchPoints = 0,
+): IosBrowser {
   const ua = userAgent || "";
+
+  // iPadOS 13+ reports itself as a Mac. A Mac with a touchscreen does not
+  // exist, which makes the touch-point count a reliable tell.
   const isIos =
     /iPad|iPhone|iPod/.test(ua) ||
-    // iPadOS 13+ reports itself as a Mac; the touch-point check happens in the
-    // component, which is the only place that can see `navigator`.
-    false;
-  if (!isIos) return false;
+    (/Macintosh/.test(ua) && maxTouchPoints > 1);
+  if (!isIos) return "not-ios";
 
   // CriOS = Chrome, FxiOS = Firefox, EdgiOS = Edge, OPiOS/OPT = Opera.
-  return !/CriOS|FxiOS|EdgiOS|OPiOS|OPT\//.test(ua);
+  // None of them can add to the home screen.
+  if (/CriOS|FxiOS|EdgiOS|OPiOS|OPT\//.test(ua)) return "other-ios-browser";
+
+  // Embedded webviews that announce themselves.
+  if (
+    /FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Line\/|Twitter|TikTok|Snapchat|LinkedInApp|Pinterest|MicroMessenger|Slack/i.test(
+      ua,
+    )
+  ) {
+    return "in-app";
+  }
+
+  // Real Safari always sends a `Version/<n>` token. A WKWebView embedded in
+  // another app generally does not, which catches the in-app browsers that
+  // do not name themselves.
+  if (!/Version\/\d/.test(ua)) return "in-app";
+
+  return "safari";
 }
 
-/**
- * Reading `localStorage` is itself a throwing operation in Safari when the
- * user has blocked storage — the exception comes from *touching the property*,
- * not from `getItem`. Passing `window.localStorage` in as an argument
- * therefore threw before the callee's try/catch could help, which aborted the
- * whole install effect and made the prompt silently never appear.
- *
- * So the access happens in here, inside the guard.
- */
 export function readDismissedAt(
   storage?: Pick<Storage, "getItem"> | null,
 ): number | null {

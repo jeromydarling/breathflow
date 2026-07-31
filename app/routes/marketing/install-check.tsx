@@ -5,7 +5,7 @@ import { marketingMeta, originFrom } from "~/lib/seo";
 import { privateNoStore } from "~/lib/cache.server";
 import {
   DISMISS_STORAGE_KEY,
-  detectIosSafari,
+  detectIosBrowser,
   installMode,
   isDismissalActive,
   readDismissedAt,
@@ -66,11 +66,7 @@ export default function InstallCheck(_: Route.ComponentProps) {
       window.matchMedia?.("(display-mode: standalone)").matches === true ||
       (navigator as { standalone?: boolean }).standalone === true;
 
-    const looksLikeIpad =
-      /Macintosh/.test(userAgent) && navigator.maxTouchPoints > 1;
-    const isIosSafari =
-      detectIosSafari(userAgent) ||
-      (looksLikeIpad && !/CriOS|FxiOS|EdgiOS|OPiOS|OPT\//.test(userAgent));
+    const iosBrowser = detectIosBrowser(userAgent, navigator.maxTouchPoints);
 
     const dismissedAt = readDismissedAt();
     const dismissed = isDismissalActive(dismissedAt, Date.now());
@@ -81,7 +77,7 @@ export default function InstallCheck(_: Route.ComponentProps) {
     const mode = installMode({
       standalone,
       hasNativePrompt,
-      isIosSafari,
+      iosBrowser,
       dismissedAt,
       now: Date.now(),
     });
@@ -92,9 +88,16 @@ export default function InstallCheck(_: Route.ComponentProps) {
       good: true,
     });
     out.push({
-      label: "Detected as iOS Safari",
-      value: isIosSafari ? "yes" : "no",
-      good: null,
+      label: "Browser",
+      value:
+        iosBrowser === "safari"
+          ? "iOS Safari — can install"
+          : iosBrowser === "in-app"
+            ? "an in-app browser (opened from another app) — cannot install; open in Safari first"
+            : iosBrowser === "other-ios-browser"
+              ? "Chrome/Firefox/Edge on iOS — cannot install; open in Safari first"
+              : "not iOS",
+      good: iosBrowser === "safari" || iosBrowser === "not-ios",
     });
     out.push({
       label: "Already installed (standalone)",
@@ -140,7 +143,9 @@ export default function InstallCheck(_: Route.ComponentProps) {
           ? "show the install button"
           : mode === "ios-instructions"
             ? "show the Share → Add to Home Screen steps"
-            : "show nothing",
+            : mode === "ios-open-in-safari"
+              ? "tell you to open the page in Safari first"
+              : "show nothing",
       good: mode !== "none",
     });
 

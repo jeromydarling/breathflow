@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DISMISS_STORAGE_KEY,
   type InstallMode,
-  detectIosSafari,
+  detectIosBrowser,
   installMode,
   readDismissedAt,
 } from "~/lib/install";
@@ -57,20 +57,16 @@ export function InstallPrompt() {
     // touching `localStorage` at all throws in Safari with storage blocked.
     const dismissedAt = forced ? null : readDismissedAt();
 
-    // iPadOS 13+ claims to be a Mac, so a UA check alone misses iPads. A Mac
-    // with a touchscreen does not exist, which makes this a reliable tell.
-    const ua = navigator.userAgent;
-    const looksLikeIpad =
-      /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
-    const isIosSafari =
-      detectIosSafari(ua) ||
-      (looksLikeIpad && !/CriOS|FxiOS|EdgiOS|OPiOS|OPT\//.test(ua));
+    const iosBrowser = detectIosBrowser(
+      navigator.userAgent,
+      navigator.maxTouchPoints,
+    );
 
     const evaluate = (hasNativePrompt: boolean) =>
       installMode({
         standalone: forced ? false : standalone,
         hasNativePrompt,
-        isIosSafari,
+        iosBrowser,
         dismissedAt,
         now: Date.now(),
       });
@@ -108,7 +104,9 @@ export function InstallPrompt() {
     if (!adopt()) {
       // iOS never fires beforeinstallprompt, so decide for it up front.
       const initial = evaluate(false);
-      if (initial === "ios-instructions") setMode(initial);
+      if (initial === "ios-instructions" || initial === "ios-open-in-safari") {
+        setMode(initial);
+      }
     }
 
     return () => {
@@ -189,6 +187,20 @@ export function InstallPrompt() {
               >
                 Add BreathFLOW to your home screen. It opens straight into
                 today&rsquo;s practice, with no browser in the way.
+              </p>
+            ) : mode === "ios-open-in-safari" ? (
+              <p
+                id="install-body"
+                className="mt-1.5 text-sm leading-relaxed text-[var(--color-bone-muted)]"
+              >
+                You&rsquo;re in an in-app browser, which can&rsquo;t add
+                anything to your home screen. Open this page in Safari
+                first — tap the{" "}
+                <ShareIcon />{" "}
+                <span className="text-[var(--color-bone)]">Share</span> or
+                &hellip; button and choose{" "}
+                <span className="text-[var(--color-bone)]">Open in Safari</span>
+                , then come back to this banner.
               </p>
             ) : (
               <p

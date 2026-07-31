@@ -7,11 +7,14 @@
  *
  *   npm run build
  *   npx wrangler dev --port 8788 --local
- *   node scripts/pwa-check.mjs
+ *   node scripts/pwa-check.mjs          # or BF_BASE=http://localhost:8789 …
  */
 import { chromium } from "playwright";
 
-const BASE = "http://localhost:8788";
+// `wrangler dev` sometimes serves 404s for freshly-hashed assets until its
+// state directory is cleared, and the quickest cure is a different port —
+// hence the override rather than a hard-coded one.
+const BASE = process.env.BF_BASE ?? "http://localhost:8788";
 const results = [];
 const ok = (name, pass, detail = "") =>
   results.push(`${pass ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}`);
@@ -20,6 +23,25 @@ const browser = await chromium.launch({
   executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
   args: ["--no-sandbox"],
 });
+
+/**
+ * Wait for the card's entrance animation to finish, and report its settled
+ * opacity.
+ *
+ * A screenshot taken the instant the card becomes visible catches it partway
+ * through `bf-bloom` and looks alarmingly see-through — which is a property of
+ * the capture, not of the card. Waiting for the animation makes the saved
+ * image mean what it appears to mean.
+ */
+async function settleCard(page) {
+  // A plain wait, not `animation.finished`: an ambient looping animation
+  // anywhere on the card would leave that promise pending forever, and a check
+  // that hangs is worse than one that is a second slower.
+  await page.waitForTimeout(1500);
+  return page
+    .locator('[role="dialog"] > div')
+    .evaluate((el) => getComputedStyle(el).opacity);
+}
 
 // ── 1. The prompt must not be in the server HTML ──────────────────────────
 const html = await (await fetch(`${BASE}/`)).text();
@@ -163,11 +185,47 @@ ok(
     "iOS shows no fake install button",
     (await page.getByRole("button", { name: "Add to home screen" }).count()) === 0,
   );
+  const iosOpacity = await settleCard(page);
+  ok(
+    "the card settles fully opaque, not see-through",
+    iosOpacity === "1",
+    `opacity ${iosOpacity}`,
+  );
   await page.screenshot({ path: "/tmp/claude-0/-home-user-breathflow/dc5c71a3-fa18-570d-901f-306e70421bff/scratchpad/install-ios.png" });
   await ctx.close();
 }
 
-// ── 6. Chrome on iOS must NOT get instructions it cannot follow ──────────
+// ── 5b. An in-app browser (a link opened from WhatsApp) ──────────────────
+{
+  const ctx = await browser.newContext({
+    // WhatsApp's webview: iPhone, but no Version/ token.
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  const page = await ctx.newPage();
+  await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
+  const card = page.locator("#install-heading");
+  await card.waitFor({ state: "visible", timeout: 12000 });
+  const body = await page.locator("#install-body").innerText();
+  ok(
+    "an in-app browser is told to open in Safari, not left in silence",
+    /Open in Safari/i.test(body),
+    body.slice(0, 60),
+  );
+  const inAppOpacity = await settleCard(page);
+  ok(
+    "the in-app card settles fully opaque too",
+    inAppOpacity === "1",
+    `opacity ${inAppOpacity}`,
+  );
+  await page.screenshot({ path: "/tmp/claude-0/-home-user-breathflow/dc5c71a3-fa18-570d-901f-306e70421bff/scratchpad/inapp.png" });
+  await ctx.close();
+}
+
+// ── 6. Chrome on iOS gets the same offer, not silence ────────────────────
 {
   const ctx = await browser.newContext({
     userAgent:
@@ -178,10 +236,10 @@ ok(
   });
   const page = await ctx.newPage();
   await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(7000);
+  await page.locator("#install-heading").waitFor({ state: "visible", timeout: 12000 });
   ok(
-    "Chrome on iOS is left alone",
-    (await page.locator("text=Keep your breath one tap away").count()) === 0,
+    "Chrome on iOS is told to open in Safari",
+    /Open in Safari/i.test(await page.locator("#install-body").innerText()),
   );
   await ctx.close();
 }
