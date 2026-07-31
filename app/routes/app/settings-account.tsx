@@ -2,6 +2,7 @@ import { Form, Link, data, redirect } from "react-router";
 import { safeFormData } from "~/lib/form.server";
 import type { Route } from "./+types/settings-account";
 import { runtimeFrom } from "~/lib/context";
+import { appUrl } from "~/lib/seo";
 import {
   clearedSessionCookie,
   destroyAllSessions,
@@ -73,7 +74,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     await setPassword(env, user.id, next);
     await destroyAllSessions(env, user.id);
 
-    const notice = passwordChangedEmail(env.APP_URL, env.SUPPORT_EMAIL);
+    const notice = passwordChangedEmail(appUrl(env, request), env.SUPPORT_EMAIL);
     ctx.waitUntil(
       sendEmail(env, {
         to: user.email,

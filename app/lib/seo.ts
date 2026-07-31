@@ -207,11 +207,41 @@ export function practiceSchema(opts: {
   };
 }
 
-/** Absolute origin for the current request, honouring the configured APP_URL. */
+/**
+ * Absolute origin for the current request, honouring the configured APP_URL.
+ *
+ * APP_URL ships empty on purpose. Guessing a hostname is genuinely dangerous
+ * here: a plausible-looking guess can belong to somebody else, and it would
+ * end up in canonical tags, the sitemap, llms.txt and every email link —
+ * quietly pointing your SEO and your users at a stranger's product. With it
+ * unset we use the origin the request actually arrived on, which is always
+ * correct for anything served over HTTP.
+ */
 export function originFrom(request: Request, env?: Env): string {
-  const configured = env?.APP_URL;
-  if (configured && /^https?:\/\//.test(configured)) {
+  // `wrangler types` narrows a var declared as "" to the literal type, so read
+  // it as a plain string — the value at runtime is whatever is deployed.
+  const configured = String(env?.APP_URL ?? "");
+  if (/^https?:\/\//.test(configured)) {
     return configured.replace(/\/$/, "");
   }
   return new URL(request.url).origin;
+}
+
+/**
+ * Absolute URL for links that leave the app — emails, mostly.
+ *
+ * Pass the request where there is one. Cron has no request, so it depends on
+ * APP_URL being set; `appUrlIsConfigured` lets those paths degrade honestly
+ * rather than sending someone a broken link.
+ */
+export function appUrl(env: Env, request?: Request): string {
+  if (request) return originFrom(request, env);
+  const configured = String(env.APP_URL ?? "");
+  return /^https?:\/\//.test(configured)
+    ? configured.replace(/\/$/, "")
+    : "";
+}
+
+export function appUrlIsConfigured(env: Env): boolean {
+  return /^https?:\/\//.test(String(env.APP_URL ?? ""));
 }

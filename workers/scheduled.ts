@@ -6,6 +6,7 @@ import {
   sendEmail,
 } from "../app/lib/email.server";
 import { localDay, localHour } from "../app/lib/time";
+import { appUrl, appUrlIsConfigured } from "../app/lib/seo";
 import { seedDemoAccount, wipeDemoAccount } from "../app/lib/demo.server";
 
 /**
@@ -36,6 +37,16 @@ export async function runScheduled(
  */
 async function sendDueReminders(env: Env): Promise<void> {
   const now = Date.now();
+
+  // Cron has no request to derive an origin from, so a reminder can only carry
+  // a working link once APP_URL is set. Sending one with a broken link is
+  // worse than not sending it, so we skip and say why.
+  if (!appUrlIsConfigured(env)) {
+    console.log(
+      "[cron] skipping daily reminders — APP_URL is not set, so the link in the email would not work",
+    );
+    return;
+  }
 
   const candidates = await all<{
     id: string;
@@ -80,7 +91,7 @@ async function sendDueReminders(env: Env): Promise<void> {
     const message = dailyReminderEmail({
       name: user.name,
       line: reminderLineFor(seed),
-      appUrl: env.APP_URL,
+      appUrl: appUrl(env),
     });
 
     await sendEmail(env, {

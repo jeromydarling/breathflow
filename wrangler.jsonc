@@ -22,12 +22,26 @@
 
   "vars": {
     "APP_NAME": "BreathFLOW",
-    "APP_URL": "https://breathflow.app",
-    "SUPPORT_EMAIL": "hello@breathflow.app",
-    "FROM_EMAIL": "BreathFLOW <hello@breathflow.app>",
+
+    /**
+     * SET THIS to the real hostname once you have one — e.g.
+     * "https://breathflow.example". Leave it empty and the app uses whatever
+     * origin the request arrived on, which is always correct for pages.
+     *
+     * Do not guess a domain. `breathflow.app` belongs to an unrelated German
+     * breathing app, and pointing at it would put a stranger's URL in our
+     * canonical tags, sitemap, llms.txt and every email link.
+     *
+     * Cron-sent reminders are the one thing that cannot infer an origin —
+     * they are skipped, with a log line, until this is set.
+     */
+    "APP_URL": "",
+
+    "SUPPORT_EMAIL": "hello@breathflowpractice.com",
+    "FROM_EMAIL": "BreathFLOW <hello@breathflowpractice.com>",
     "BOOKING_URL": "",
     "INSTAGRAM_URL": "",
-    "DEMO_EMAIL": "demo@breathflow.app"
+    "DEMO_EMAIL": "demo@breathflow.internal"
   },
 
   /** D1 — relational data. */

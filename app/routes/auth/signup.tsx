@@ -15,7 +15,7 @@ import { clientIp, consume, peek } from "~/lib/ratelimit.server";
 import { EVENTS, track } from "~/lib/analytics.server";
 import { sendEmail, welcomeEmail } from "~/lib/email.server";
 import { upsertContact } from "~/lib/stats.server";
-import { marketingMeta, originFrom } from "~/lib/seo";
+import { appUrl, marketingMeta, originFrom } from "~/lib/seo";
 import { Button, Field, FormError, HealthDisclaimer, Wordmark } from "~/components/ui";
 import { privateNoStore } from "~/lib/cache.server";
 
@@ -83,7 +83,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const user = await createUser(env, { email, password, name, timezone });
   const { cookie } = await createSession(env, user, request);
 
-  const welcome = welcomeEmail(name, env.APP_URL);
+  const welcome = welcomeEmail(name, appUrl(env, request));
   ctx.waitUntil(
     Promise.all([
       // Immediate welcome. Fire-and-forget — nobody waits on our mailer.

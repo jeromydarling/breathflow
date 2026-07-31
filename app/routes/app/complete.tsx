@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Form, Link, redirect } from "react-router";
 import type { Route } from "./+types/complete";
 import { runtimeFrom } from "~/lib/context";
+import { appUrl } from "~/lib/seo";
 import { safeFormData } from "~/lib/form.server";
 import { requireOnboardedUser } from "~/lib/auth.server";
 import { one, run } from "~/lib/db.server";
@@ -148,7 +149,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       name: user.name,
       headline,
       body,
-      appUrl: env.APP_URL,
+      appUrl: appUrl(env, request),
     });
     ctx.waitUntil(
       sendEmail(env, {

@@ -9,7 +9,7 @@ import {
 } from "~/lib/auth.server";
 import { clientIp, consume, peek } from "~/lib/ratelimit.server";
 import { passwordResetEmail, sendEmail } from "~/lib/email.server";
-import { marketingMeta, originFrom } from "~/lib/seo";
+import { appUrl, marketingMeta, originFrom } from "~/lib/seo";
 import { Button, Field, FormError, FormNote, Wordmark } from "~/components/ui";
 import { privateNoStore } from "~/lib/cache.server";
 
@@ -64,7 +64,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const user = await findUserByEmail(env, email);
   if (user && user.is_demo === 0) {
     const token = await issueResetToken(env, user.id);
-    const message = passwordResetEmail(`${env.APP_URL}/reset/${token}`);
+    const message = passwordResetEmail(`${appUrl(env, request)}/reset/${token}`);
     ctx.waitUntil(
       sendEmail(env, {
         to: email,

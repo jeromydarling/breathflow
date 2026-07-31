@@ -31,10 +31,24 @@ npm run db:migrate:local     # local dev database
 npm run db:migrate:remote    # production
 ```
 
-### 3. Set `APP_URL`
+### 3. Set `APP_URL` once you have a domain
 
-In `wrangler.jsonc`, change `APP_URL` to the real hostname. It is used for
-canonical URLs, `sitemap.xml`, `llms.txt` and every link in an email.
+`APP_URL` ships **empty on purpose**, and the app works that way — canonical
+URLs, `sitemap.xml`, `llms.txt` and links in emails sent from a request all
+derive from the origin the request actually arrived on.
+
+Set it in `wrangler.jsonc` when you have the real hostname. Two things depend
+on it:
+
+- **Cron reminders.** A scheduled run has no request to infer an origin from,
+  so the daily reminder is skipped (with a log line) until `APP_URL` is set.
+- **Stable canonical URLs**, if the app is ever reachable on more than one
+  hostname.
+
+Do not guess a domain here. `breathflow.app` is an unrelated German breathing
+app — pointing at it would put a stranger's URL in your canonical tags,
+sitemap and email links. `SUPPORT_EMAIL` and `FROM_EMAIL` are placeholders on
+a domain you should confirm you control before enabling email.
 
 ### 4. Deploy
 

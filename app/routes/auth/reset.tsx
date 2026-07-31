@@ -11,7 +11,7 @@ import {
 } from "~/lib/auth.server";
 import { passwordProblem } from "~/lib/password.server";
 import { passwordChangedEmail, sendEmail } from "~/lib/email.server";
-import { marketingMeta, originFrom } from "~/lib/seo";
+import { appUrl, marketingMeta, originFrom } from "~/lib/seo";
 import { Button, Field, FormError, Wordmark } from "~/components/ui";
 import { privateNoStore } from "~/lib/cache.server";
 
@@ -60,7 +60,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   // been in there without permission.
   await destroyAllSessions(env, user.id);
 
-  const notice = passwordChangedEmail(env.APP_URL, env.SUPPORT_EMAIL);
+  const notice = passwordChangedEmail(appUrl(env, request), env.SUPPORT_EMAIL);
   ctx.waitUntil(
     sendEmail(env, {
       to: user.email,
