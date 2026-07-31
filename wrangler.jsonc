@@ -24,24 +24,21 @@
     "APP_NAME": "BreathFLOW",
 
     /**
-     * SET THIS to the real hostname once you have one — e.g.
-     * "https://breathflow.example". Leave it empty and the app uses whatever
-     * origin the request arrived on, which is always correct for pages.
+     * The canonical origin. Everything served over HTTP could infer this from
+     * the request, but cron has no request — so setting it is what lets the
+     * daily reminder go out with a working link.
      *
-     * Do not guess a domain. `breathflow.app` belongs to an unrelated German
-     * breathing app, and pointing at it would put a stranger's URL in our
-     * canonical tags, sitemap, llms.txt and every email link.
-     *
-     * Cron-sent reminders are the one thing that cannot infer an origin —
-     * they are skipped, with a log line, until this is set.
+     * Never point this at a domain we don't control: it lands in canonical
+     * tags, the sitemap, llms.txt and every email link. (`breathflow.app` is
+     * an unrelated German breathing app — not us.)
      */
-    "APP_URL": "",
+    "APP_URL": "https://breathflow.life",
 
-    "SUPPORT_EMAIL": "hello@breathflowpractice.com",
-    "FROM_EMAIL": "BreathFLOW <hello@breathflowpractice.com>",
+    "SUPPORT_EMAIL": "hello@breathflow.life",
+    "FROM_EMAIL": "BreathFLOW <hello@breathflow.life>",
     "BOOKING_URL": "",
     "INSTAGRAM_URL": "",
-    "DEMO_EMAIL": "demo@breathflow.internal"
+    "DEMO_EMAIL": "demo@breathflow.life"
   },
 
   /** D1 — relational data. */

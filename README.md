@@ -5,6 +5,8 @@
 A daily breath practice rooted in the yogic tradition of pranayama. Built as a
 server-rendered, installable web app on Cloudflare Workers.
 
+**Live at [breathflow.life](https://breathflow.life).**
+
 ---
 
 ## Activating this deployment
@@ -31,24 +33,17 @@ npm run db:migrate:local     # local dev database
 npm run db:migrate:remote    # production
 ```
 
-### 3. Set `APP_URL` once you have a domain
+### 3. `APP_URL` is set
 
-`APP_URL` ships **empty on purpose**, and the app works that way — canonical
-URLs, `sitemap.xml`, `llms.txt` and links in emails sent from a request all
-derive from the origin the request actually arrived on.
+The app is live at **https://breathflow.life**, and `APP_URL` in
+`wrangler.jsonc` points there. It feeds canonical URLs, `sitemap.xml`,
+`llms.txt`, and links in emails — including the cron-sent daily reminder,
+which is the one path with no request to infer an origin from.
 
-Set it in `wrangler.jsonc` when you have the real hostname. Two things depend
-on it:
-
-- **Cron reminders.** A scheduled run has no request to infer an origin from,
-  so the daily reminder is skipped (with a log line) until `APP_URL` is set.
-- **Stable canonical URLs**, if the app is ever reachable on more than one
-  hostname.
-
-Do not guess a domain here. `breathflow.app` is an unrelated German breathing
-app — pointing at it would put a stranger's URL in your canonical tags,
-sitemap and email links. `SUPPORT_EMAIL` and `FROM_EMAIL` are placeholders on
-a domain you should confirm you control before enabling email.
+If the domain ever changes, that var is the only place to change it. Never
+point it at a hostname you don't control: `breathflow.app` is an unrelated
+German breathing app, and aiming at it would put a stranger's URL in your
+canonical tags and email links.
 
 ### 4. Deploy
 
