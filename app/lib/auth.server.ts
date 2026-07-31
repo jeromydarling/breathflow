@@ -1,10 +1,24 @@
 import { redirect } from "react-router";
 import { newId, newToken } from "./ids";
 import { all, batch, one, run } from "./db.server";
-import { hashPassword, sha256Hex, verifyPassword } from "./password.server";
+import {
+  MAX_WORKERS_PBKDF2_ITERATIONS,
+  hashPassword,
+  sha256Hex,
+  verifyPassword,
+} from "./password.server";
 import { isValidTimeZone } from "./time";
 
 export const SESSION_COOKIE = "bf_session";
+
+/**
+ * A well-formed hash that no password matches, used to keep the timing of a
+ * miss close to the timing of a hit. Built from the live iteration count so it
+ * can never drift out of step with real hashes.
+ */
+const DECOY_HASH = `pbkdf2$${MAX_WORKERS_PBKDF2_ITERATIONS}$${btoa(
+  "decoy-salt-0000",
+)}$${btoa("decoy-not-a-real-derived-key-value-here")}`;
 const SESSION_DAYS = 60;
 const RESET_TTL_MS = 60 * 60 * 1000; // one hour, as the brief requires
 
@@ -256,8 +270,9 @@ export async function verifyCredentials(
   const user = await findUserByEmail(env, email);
   if (!user) {
     // Burn roughly the same time as a real verification so the response time
-    // does not reveal whether the address exists.
-    await verifyPassword(password, `pbkdf2$210000$${btoa("decoy-salt-xxxx")}$${btoa("decoy")}`);
+    // does not reveal whether the address exists. The decoy has to use the
+    // real iteration count, or it neither costs the same nor stays valid.
+    await verifyPassword(password, DECOY_HASH);
     return null;
   }
   const ok = await verifyPassword(password, user.password_hash);

@@ -6,7 +6,17 @@
  * anyone's login.
  */
 
-const ITERATIONS = 210_000; // OWASP guidance for PBKDF2-SHA512
+/**
+ * Workers refuses PBKDF2 above 100,000 iterations:
+ *   NotSupportedError: Pbkdf2 failed: iteration counts above 100000 are not
+ *   supported (requested 210000).
+ *
+ * OWASP suggests 210,000 for PBKDF2-SHA512, and the local emulator happily
+ * accepts it — so this only ever fails in production, where it took signup,
+ * the demo and every login down at once. Do not raise it past the cap.
+ */
+export const MAX_WORKERS_PBKDF2_ITERATIONS = 100_000;
+const ITERATIONS = MAX_WORKERS_PBKDF2_ITERATIONS;
 const KEY_BITS = 512;
 const SALT_BYTES = 16;
 
@@ -74,14 +84,26 @@ export async function verifyPassword(
   const iterations = Number(parts[1]);
   if (!Number.isInteger(iterations) || iterations < 1000) return false;
 
+  /*
+   * Parsing failures mean a malformed stored hash — that is data, and "no
+   * match" is the honest answer.
+   *
+   * A failure inside the KDF is a different animal entirely: it means the
+   * platform could not hash at all, so *nobody* can log in. Swallowing that
+   * as a wrong password is what let a hard production outage look like a user
+   * typo for as long as it did. It gets to surface.
+   */
+  let salt: Uint8Array;
+  let expected: Uint8Array;
   try {
-    const salt = fromBase64(parts[2]!);
-    const expected = fromBase64(parts[3]!);
-    const actual = await derive(password, salt, iterations);
-    return timingSafeEqual(actual, expected);
+    salt = fromBase64(parts[2]!);
+    expected = fromBase64(parts[3]!);
   } catch {
     return false;
   }
+
+  const actual = await derive(password, salt, iterations);
+  return timingSafeEqual(actual, expected);
 }
 
 /** SHA-256 hex. Used for reset tokens, which are stored hashed at rest. */
