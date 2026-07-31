@@ -30,28 +30,21 @@
     "DEMO_EMAIL": "demo@breathflow.app"
   },
 
-  /**
-   * D1 — relational data. Create with:
-   *   npx wrangler d1 create breathflow
-   * then paste the returned id below.
-   */
+  /** D1 — relational data. */
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "breathflow",
-      "database_id": "PLACEHOLDER_RUN_WRANGLER_D1_CREATE",
+      "database_id": "708a3005-a174-4ad8-a7bb-67632af9e46a",
       "migrations_dir": "migrations"
     }
   ],
 
-  /**
-   * KV — rate-limit counters, ephemeral tokens, cached config.
-   *   npx wrangler kv namespace create BREATHFLOW_KV
-   */
+  /** KV — rate-limit counters, ephemeral tokens, cached config. */
   "kv_namespaces": [
     {
       "binding": "KV",
-      "id": "PLACEHOLDER_RUN_WRANGLER_KV_CREATE"
+      "id": "489f6a69c9d248c399c2db353f13ffec"
     }
   ],
 
