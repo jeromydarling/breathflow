@@ -13,6 +13,7 @@ import { CURRENCY, PLANS, formatCents } from "~/lib/pricing";
 import { orderedPractices, INTENSITY_LABEL } from "~/content/practices";
 import { humanDuration } from "~/lib/time";
 import { Button, CoreQuote, Pill, Wordmark } from "~/components/ui";
+import { InstallPrompt } from "~/components/InstallPrompt";
 import { publicPageHeaders } from "~/lib/cache.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -63,6 +64,10 @@ export default function MarketingHome({ loaderData }: Route.ComponentProps) {
 
   return (
     <>
+      {/* Appears only once the browser confirms it can install, and only
+          after the page has had a few seconds to itself. */}
+      <InstallPrompt />
+
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="bf-dawn relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_120%,transparent_20%,rgba(23,26,24,0.85)_75%)]" />

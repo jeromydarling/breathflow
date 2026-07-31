@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   Links,
   Meta,
@@ -43,6 +44,27 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="theme-color" content="#171a18" />
         <Meta />
         <Links />
+        {/*
+          Capture `beforeinstallprompt` before React hydrates.
+
+          Chrome fires it as soon as it decides the app is installable, which
+          is routinely earlier than a React bundle finishes hydrating. An
+          effect-based listener therefore misses it outright and the install
+          prompt simply never appears — silently, and only in production-like
+          conditions. Stashing it here means the component can pick it up
+          whenever it mounts.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){window.__bfInstallEvent=null;" +
+              "window.addEventListener('beforeinstallprompt',function(e){" +
+              "e.preventDefault();window.__bfInstallEvent=e;" +
+              "window.dispatchEvent(new Event('bf:installready'));});" +
+              "window.addEventListener('appinstalled',function(){" +
+              "window.__bfInstallEvent=null;});})();",
+          }}
+        />
       </head>
       <body className="min-h-full antialiased">
         {children}
@@ -54,7 +76,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  useServiceWorker();
   return <Outlet />;
+}
+
+/**
+ * Registers the service worker.
+ *
+ * It caches only content-hashed build assets — never a page, never an API
+ * response (see public/sw.js). Its real job is that Chrome will not offer to
+ * install a web app without one.
+ */
+function useServiceWorker() {
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    // Registration is not urgent and competes with the first render for
+    // bandwidth, so let the page settle first.
+    const id = window.setTimeout(() => {
+      navigator.serviceWorker.register("/sw.js").catch((error) => {
+        // A failed registration costs us the install prompt, nothing else.
+        console.warn("service worker registration failed", error);
+      });
+    }, 2000);
+    return () => window.clearTimeout(id);
+  }, []);
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
