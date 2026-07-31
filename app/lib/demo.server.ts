@@ -1,4 +1,4 @@
-import { all, one, purgeOrg, run } from "./db.server";
+import { all, batch, one, purgeOrg, run } from "./db.server";
 import { newId } from "./ids";
 import { hashPassword } from "./password.server";
 import { addDays, localDay } from "./time";
@@ -89,7 +89,7 @@ export async function seedDemoAccount(env: Env): Promise<{ id: string; org_id: s
   const orgId = newId("org");
   const userId = newId("user");
 
-  await env.DB.batch([
+  await batch(env.DB, [
     env.DB.prepare(
       `INSERT INTO orgs (id, name, kind, created_at) VALUES (?, ?, 'demo', ?)`,
     ).bind(orgId, "BreathFLOW demo", now - 40 * 86_400_000),
@@ -171,7 +171,7 @@ export async function seedDemoAccount(env: Env): Promise<{ id: string; org_id: s
 
   // Batched into one round trip — a per-row insert loop would blow the
   // subrequest budget before it finished.
-  await env.DB.batch([...sessionStatements, ...retentionStatements]);
+  await batch(env.DB, [...sessionStatements, ...retentionStatements]);
 
   return { id: userId, org_id: orgId };
 }

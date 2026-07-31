@@ -115,6 +115,56 @@ describe("migrations", () => {
   });
 });
 
+/**
+ * Production D1 enforces foreign keys; the local emulator does not. That gap
+ * let a batch that creates an org and its first user together pass every local
+ * test and then fail in production with SQLITE_CONSTRAINT_FOREIGNKEY.
+ *
+ * The fix is `PRAGMA defer_foreign_keys = true` at the head of every batch,
+ * which lives in the `batch()` helper. This test is the thing that stops
+ * someone reintroducing the bug by calling `db.batch` directly — because
+ * nothing else will notice until it is deployed.
+ */
+describe("D1 batching", () => {
+  const sourceFiles = (dir: string): string[] => {
+    const out: string[] = [];
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) out.push(...sourceFiles(full));
+      else if (/\.tsx?$/.test(entry.name) && !entry.name.includes(".test."))
+        out.push(full);
+    }
+    return out;
+  };
+
+  it("never calls db.batch directly outside the helper", () => {
+    const offenders: string[] = [];
+    for (const dir of ["app", "workers"]) {
+      for (const file of sourceFiles(join(process.cwd(), dir))) {
+        if (file.endsWith(join("lib", "db.server.ts"))) continue;
+        const src = readFileSync(file, "utf8");
+        if (/\.batch\s*\(/.test(src)) {
+          offenders.push(file.replace(`${process.cwd()}/`, ""));
+        }
+      }
+    }
+    expect(
+      offenders,
+      `these call db.batch directly and would skip PRAGMA defer_foreign_keys: ${offenders.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  it("the helper defers foreign keys and hides the pragma from callers", () => {
+    const src = readFileSync(
+      join(process.cwd(), "app/lib/db.server.ts"),
+      "utf8",
+    );
+    expect(src).toMatch(/PRAGMA defer_foreign_keys = true/);
+    // The pragma's own result must not leak into the caller's array.
+    expect(src).toMatch(/results\.slice\(1\)/);
+  });
+});
+
 describe("onboarding", () => {
   it("has the nine screens the brief describes", () => {
     expect(STEPS).toHaveLength(9);

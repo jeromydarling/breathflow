@@ -1,4 +1,4 @@
-import { all, one, run } from "./db.server";
+import { all, batch, one, run } from "./db.server";
 import { newId } from "./ids";
 import {
   currentStreak,
@@ -162,7 +162,8 @@ export async function grantAchievements(
   if (fresh.length === 0) return [];
 
   const now = Date.now();
-  await env.DB.batch(
+  await batch(
+    env.DB,
     fresh.map((achievement) =>
       env.DB.prepare(
         `INSERT INTO achievements (id, org_id, user_id, key, earned_at, meta)

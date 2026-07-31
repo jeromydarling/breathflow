@@ -1,6 +1,6 @@
 import { redirect } from "react-router";
 import { newId, newToken } from "./ids";
-import { all, one, run } from "./db.server";
+import { all, batch, one, run } from "./db.server";
 import { hashPassword, sha256Hex, verifyPassword } from "./password.server";
 import { isValidTimeZone } from "./time";
 
@@ -213,7 +213,7 @@ export async function createUser(
   const userId = newId("user");
   const passwordHash = await hashPassword(input.password);
 
-  await env.DB.batch([
+  await batch(env.DB, [
     env.DB.prepare(
       `INSERT INTO orgs (id, name, kind, created_at) VALUES (?, ?, ?, ?)`,
     ).bind(

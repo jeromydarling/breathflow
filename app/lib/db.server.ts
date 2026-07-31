@@ -38,13 +38,34 @@ export async function run(
 /**
  * Batch writes into a single round trip. Per-request subrequest budgets on
  * Workers are tight, and a completed session writes four rows at once.
+ *
+ * Every batch is prefixed with `PRAGMA defer_foreign_keys = true`, and that
+ * prefix is load-bearing.
+ *
+ * D1 enforces foreign key constraints in production. The local emulator does
+ * not — which is precisely how this hid through a full local test pass. Inside
+ * a batch's transaction, a parent row inserted by an earlier statement is not
+ * reliably visible to a later statement's immediate FK check, so creating an
+ * org and its first user in one batch fails in production with
+ * SQLITE_CONSTRAINT_FOREIGNKEY while working perfectly on a laptop.
+ *
+ * Deferring the checks to commit time is Cloudflare's own recommendation, and
+ * it loses nothing: the constraints are still enforced, just at the end of the
+ * transaction, by which point every row exists.
+ *
+ * ALWAYS go through this helper rather than calling `db.batch` directly.
  */
 export async function batch(
   db: D1Database,
   statements: D1PreparedStatement[],
 ): Promise<D1Result[]> {
   if (statements.length === 0) return [];
-  return db.batch(statements);
+  const results = await db.batch([
+    db.prepare("PRAGMA defer_foreign_keys = true"),
+    ...statements,
+  ]);
+  // Drop the pragma's result so callers keep their original indexing.
+  return results.slice(1);
 }
 
 export function nowMs(): number {
