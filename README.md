@@ -127,6 +127,38 @@ These are deliberately left open because they are not an engineer's call.
 - **Server-only modules end in `.server.ts`** and are kept out of the client
   bundle by the build.
 
+### Browser support
+
+**iOS 16.4+ / Safari 16.4+, Chrome 111+, Firefox 128+.**
+
+That floor is set by Tailwind v4, which compiles to `@property`, `color-mix()`
+and `oklab` — all Safari 16.4 features. On anything older the stylesheet
+degrades badly enough that the site looks broken, so it is worth knowing
+before chasing a bug that is really a version problem.
+
+`.at()` and `:has()` are also used, both Safari 15.4+. No lookbehind regex, no
+top-level await, no class static blocks.
+
+### The PWA install prompt
+
+Three things it has to work around, all documented in
+`app/components/InstallPrompt.tsx`:
+
+- Chrome fires `beforeinstallprompt` before React hydrates, so an inline
+  script in `<head>` captures it and the component adopts it on mount.
+- iOS Safari has no install API — it gets Share → Add to Home Screen
+  instructions instead. Chrome and Firefox on iOS cannot install at all and
+  are shown nothing.
+- Chrome will not offer installation without a service worker that has a fetch
+  handler, hence `public/sw.js`.
+
+Append **`?install`** to any URL to force the prompt past a previous dismissal
+and skip the delay. There is otherwise no way to see it again for thirty days
+once dismissed, which makes it impossible to demo or support.
+
+Run `npm run pwa-check` against a local build to exercise all of it in real
+Chromium — 18 checks across both platforms.
+
 ### Layout
 
 ```
