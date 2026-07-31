@@ -15,6 +15,7 @@ import { clientIp, consume, peek } from "~/lib/ratelimit.server";
 import { EVENTS, track } from "~/lib/analytics.server";
 import { sendEmail, welcomeEmail } from "~/lib/email.server";
 import { upsertContact } from "~/lib/stats.server";
+import { recordError } from "~/lib/errors.server";
 import { appUrl, marketingMeta, originFrom } from "~/lib/seo";
 import { Button, Field, FormError, HealthDisclaimer, Wordmark } from "~/components/ui";
 import { privateNoStore } from "~/lib/cache.server";
@@ -80,7 +81,21 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   await consume(env.KV, "signup", ip);
-  const user = await createUser(env, { email, password, name, timezone });
+
+  let user: Awaited<ReturnType<typeof createUser>>;
+  try {
+    user = await createUser(env, { email, password, name, timezone });
+  } catch (error) {
+    await recordError(env, "signup:createUser", error, { email });
+    return data(
+      {
+        error:
+          "Something went wrong creating your practice — that one is on us, not you. Please try again in a moment.",
+      },
+      { status: 500 },
+    );
+  }
+
   const { cookie } = await createSession(env, user, request);
 
   const welcome = welcomeEmail(name, appUrl(env, request));
