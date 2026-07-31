@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+/*
+ * BreathFLOW design tokens.
+ *
+ * Colours come from the brief §17.2 as starting points, adjusted where the
+ * original value could not clear WCAG AA against its intended background.
+ * Every pairing used in the UI is pinned by app/lib/contrast.test.ts — if you
+ * change a token, that test tells you what broke.
+ */
+@theme {
+  /* Core surfaces */
+  --color-forest: #173a2b;
+  --color-forest-deep: #0e241b;
+  --color-charcoal: #171a18;
+  --color-bone: #f4efe5;
+  --color-sand: #d8c6a3;
+
+  /* Accents */
+  --color-amber: #c28a3a;
+  --color-amber-bright: #e0a84e; /* lifted for AA on charcoal/forest */
+  --color-copper: #9b623d;
+  --color-copper-bright: #c98358;
+  --color-indigo-night: #1c2340;
+  --color-rose-dawn: #e8b4a0;
+
+  /* Muted text that still clears AA on our dark surfaces */
+  --color-bone-muted: #c9c3b6;
+  --color-bone-faint: #9d978a;
+
+  --font-sans: "Inter var", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Cormorant Garamond", ui-serif, Georgia, serif;
+
+  /* Motion — slow, breath-paced. Nothing here should feel like a game. */
+  --ease-breath: cubic-bezier(0.37, 0, 0.63, 1);
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    /* Respect the user's text-size preference rather than locking to 16px. */
+    font-size: 100%;
+  }
+
+  html,
+  body {
+    background-color: var(--color-charcoal);
+    color: var(--color-bone);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Never trap a scroll on a screen someone opened while panicking. */
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    font-family: var(--font-sans);
+  }
+
+  /* Focus that is visible on every surface we use. */
+  :focus-visible {
+    outline: 2px solid var(--color-amber-bright);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--color-amber);
+    color: var(--color-charcoal);
+  }
+}
+
+@layer components {
+  .bf-dawn {
+    background-image: linear-gradient(
+      160deg,
+      #2a1d17 0%,
+      #6b3f24 42%,
+      #c28a3a 78%,
+      #e8b4a0 100%
+    );
+  }
+
+  .bf-night {
+    background-image: linear-gradient(
+      170deg,
+      #0e241b 0%,
+      #173a2b 45%,
+      #1c2340 100%
+    );
+  }
+
+  .bf-ember {
+    background-image: linear-gradient(
+      150deg,
+      #171a18 0%,
+      #3d2418 55%,
+      #9b623d 100%
+    );
+  }
+
+  .bf-still {
+    background-image: linear-gradient(
+      175deg,
+      #0e241b 0%,
+      #171a18 60%,
+      #1c2340 100%
+    );
+  }
+
+  /* A quiet card that reads as "held" rather than "boxed". */
+  .bf-card {
+    background-color: color-mix(in oklab, var(--color-bone) 5%, transparent);
+    border: 1px solid color-mix(in oklab, var(--color-bone) 11%, transparent);
+    border-radius: 1.25rem;
+    backdrop-filter: blur(10px);
+  }
+}
+
+/*
+ * Reduced motion is not a downgrade here — it is a supported way to practise.
+ * The breathing orb switches from scaling to a slow opacity fade, which still
+ * paces the breath without moving the viewport.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .bf-orb-motion {
+    animation: none !important;
+    transform: scale(0.86) !important;
+  }
+}
+
+@keyframes bf-breathe {
+  0%,
+  100% {
+    transform: scale(0.72);
+    opacity: 0.65;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bf-bloom {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bf-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -12px, 0);
+  }
+}
